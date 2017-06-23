@@ -68,8 +68,8 @@ pub struct Program {
 
 impl Program {
     pub unsafe fn new() -> Result<Self, ProgramCreationError> {
-        let vert_src = ::load_file("shaders/def.vert").unwrap();
-        let frag_src = ::load_file("shaders/def.frag").unwrap();
+        let vert_src = ::load_file("def.vert").unwrap();
+        let frag_src = ::load_file("def.frag").unwrap();
 
         let vert = Shader::new(vert_src, gl::VERTEX_SHADER)?;
         let frag = Shader::new(frag_src, gl::FRAGMENT_SHADER)?;

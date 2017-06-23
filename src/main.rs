@@ -5,6 +5,9 @@ extern crate slog;
 extern crate slog_term;
 extern crate slog_async;
 
+#[cfg(target_os = "android")]
+extern crate android_glue;
+
 pub mod logger;
 pub mod time;
 pub mod renderer;
@@ -44,9 +47,10 @@ impl Engine {
         let window = {
             let monitor = glutin::get_primary_monitor();
 
+            #[cfg(not(target_os = "android"))]
             let window = glutin::WindowBuilder::new()
                 .with_title("Engine test shit gg")
-                //.with_fullscreen(monitor)
+                .with_fullscreen(monitor)
                 .with_vsync()
                 .with_multisampling(4u16)
                 .with_depth_buffer(24u8)
@@ -55,6 +59,14 @@ impl Engine {
                 .with_gl_robustness(glutin::Robustness::RobustNoResetNotification)
                 .build(&glutin_event_loop)
                 .unwrap();
+
+            #[cfg(target_os = "android")]
+            let window = glutin::WindowBuilder::new()
+                .with_vsync()
+                .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 2)))
+                .build(&glutin_event_loop)
+                .unwrap();
+
 
             Rc::new(window)
         };
@@ -108,14 +120,33 @@ impl Engine {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn load_file(src: &'static str) -> std::io::Result<String> {
     use std::io::{Read, BufReader};
     use std::fs::File;
+    use std::path::Path;
 
     let mut ret = String::new();
-    let file = File::open(src)?;
+    let filename = &Path::new("shaders/gl").join(&src);
+    let file = File::open(filename)?;
     let mut buf = BufReader::new(file);
     buf.read_to_string(&mut ret)?;
+
+    Ok(ret)
+}
+
+#[cfg(target_os = "android")]
+pub fn load_file(src: &'static str) -> std::io::Result<String> {
+    use std::path::Path;
+    use android_glue;
+
+    let filename = Path::new("es").join(&src);
+    let filename = filename.to_str().unwrap();
+
+    let ret = match android_glue::load_asset(filename) {
+        Ok(buf) => String::from_utf8(buf).unwrap(),
+        _ => panic!("Failed to load asset"),
+    };
 
     Ok(ret)
 }
